@@ -5,7 +5,9 @@ import android.graphics.Bitmap;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.WritableNativeArray;
 
 import net.sourceforge.zbar.Config;
 import net.sourceforge.zbar.Image;
@@ -14,6 +16,7 @@ import net.sourceforge.zbar.Symbol;
 import net.sourceforge.zbar.SymbolSet;
 
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 public class ZBarDecoder implements Decoder {
     private final ImageScanner mScanner;
@@ -61,10 +64,21 @@ public class ZBarDecoder implements Decoder {
         WritableMap result = null;
         if (mScanner.scanImage(image) != 0) {
             SymbolSet symbols = mScanner.getResults();
-            Symbol symbol = symbols.iterator().next();
+            WritableArray metadata = new WritableNativeArray();
+            for(Symbol symbol : symbols){
+                WritableMap map = Arguments.createMap();
+                int[] bound = symbol.getBounds();
+                map.putInt("format", symbolToFormat(symbol.getType()));
+                map.putString("content", fixEncoding(symbol.getData()));
+                map.putInt("left",bound[0]);
+                map.putInt("top",bound[1]);
+                map.putInt("width",bound[2]);
+                map.putInt("height",bound[3]);
+
+                metadata.pushMap(map);
+            }
             result = Arguments.createMap();
-            result.putInt("format", symbolToFormat(symbol.getType()));
-            result.putString("content", fixEncoding(symbol.getData()));
+            result.putArray("barcodes",metadata);
         }
         return result;
     }
