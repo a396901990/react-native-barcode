@@ -55,13 +55,23 @@
 {
     ZBarImage *zImage = [[ZBarImage alloc] initWithCGImage:image];
     if ([_scanner scanImage:zImage]) {
+        NSMutableDictionary *response = [[NSMutableDictionary alloc] init];
+        NSMutableArray *rawValues = [NSMutableArray array];
+
         for (ZBarSymbol *result in _scanner.results) {
-            handler(@{
-                      @"format": [self convertSymbolToFormat:result.type],
-                      @"content": RNLConvertShiftJISToUTF8(result.data)
-                      }, nil);
-            return;
+            CGRect pos = result.bounds;
+            NSMutableDictionary* map = [NSMutableDictionary new];
+            [map setObject:[self convertSymbolToFormat:result.type] forKey:@"format"];
+            [map setObject:RNLConvertShiftJISToUTF8(result.data) forKey:@"content"];
+            [map setObject:[NSNumber numberWithInt:pos.origin.x] forKey:@"left"];
+            [map setObject:[NSNumber numberWithInt:pos.origin.y] forKey:@"top"];
+            [map setObject:[NSNumber numberWithInt:pos.size.width] forKey:@"width"];
+            [map setObject:[NSNumber numberWithInt:pos.size.height] forKey:@"height"];
+            [rawValues addObject:map];
         }
+        response[@"barcodes"] = rawValues;
+        handler(response,nil);
+        return;
     }
     handler(nil, @"Not Found");
 }
